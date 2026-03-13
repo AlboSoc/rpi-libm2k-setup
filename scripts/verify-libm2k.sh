@@ -3,12 +3,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/env.sh"
+validate_python_target
 
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="$PREFIX/lib:$PREFIX/lib64:${LD_LIBRARY_PATH:-}"
-export PYTHONPATH="$PREFIX/lib/python3/dist-packages:$PREFIX/local/lib/python3/dist-packages:${PYTHONPATH:-}"
 
-echo "==> Verifying installed libraries"
+echo "==> Verifying installed native libraries"
 ldconfig -p | grep -E 'libiio|libm2k' || true
 
 echo
@@ -25,8 +25,10 @@ else
 fi
 
 echo
-echo "==> Verifying Python imports"
-python3 - <<'PY'
+echo "==> Verifying Python imports with $PYTHON_EXE"
+echo "==> site-packages=$(python_site_packages)"
+
+"$PYTHON_EXE" - <<'PY'
 import sys
 
 print("Python executable:", sys.executable)
@@ -35,13 +37,20 @@ print("Python version:", sys.version)
 try:
     import iio
     print("Imported iio OK")
+    print("iio module:", getattr(iio, "__file__", "<unknown>"))
 except Exception as e:
     print("ERROR importing iio:", e)
     raise
 
 try:
+    print(f"{iio.version=}")
+except Exception as e:
+    print("Could not get iio.version:", e)
+
+try:
     import libm2k
     print("Imported libm2k OK")
+    print("libm2k module:", getattr(libm2k, "__file__", "<unknown>"))
 except Exception as e:
     print("ERROR importing libm2k:", e)
     raise
@@ -54,7 +63,8 @@ PY
 
 echo
 echo "==> Checking for locally connected M2k device"
-python3 - <<'PY'
+
+"$PYTHON_EXE" - <<'PY'
 import sys
 
 try:
@@ -71,6 +81,7 @@ try:
         sys.exit(0)
 
     print("ADALM2000 detected and opened successfully.")
+
     try:
         serial = ctx.getSerialNumber()
         print("Serial number:", serial)

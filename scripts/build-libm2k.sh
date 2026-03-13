@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/env.sh"
+validate_python_target
 
 mkdir -p "$SRC_ROOT" "$BUILD_ROOT"
 
@@ -23,15 +24,15 @@ git -C "$LIBM2K_SRC" checkout "$LIBM2K_REF"
 rm -rf "$LIBM2K_BUILD"
 mkdir -p "$LIBM2K_BUILD"
 
-# Make sure pkg-config and CMake can see /usr/local if that's where libiio went.
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CMAKE_PREFIX_PATH="$PREFIX:${CMAKE_PREFIX_PATH:-}"
 
-echo "==> Configuring libm2k"
+echo "==> Configuring libm2k (native library only)"
 cmake -S "$LIBM2K_SRC" -B "$LIBM2K_BUILD" \
     -G "$CMAKE_GENERATOR" \
     -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DENABLE_PYTHON=OFF \
     $LIBM2K_CMAKE_FLAGS
 
 echo "==> Building libm2k"
@@ -43,4 +44,4 @@ sudo cmake --install "$LIBM2K_BUILD"
 echo "==> Refreshing linker cache"
 sudo ldconfig
 
-echo "==> libm2k build/install complete"
+echo "==> libm2k native build/install complete"

@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/env.sh"
+validate_python_target
 
 mkdir -p "$SRC_ROOT" "$BUILD_ROOT"
 
@@ -23,12 +24,12 @@ git -C "$LIBIIO_SRC" checkout "$LIBIIO_REF"
 rm -rf "$LIBIIO_BUILD"
 mkdir -p "$LIBIIO_BUILD"
 
-echo "==> Configuring libiio"
+echo "==> Configuring libiio (native library only)"
 cmake -S "$LIBIIO_SRC" -B "$LIBIIO_BUILD" \
     -G "$CMAKE_GENERATOR" \
     -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-    -DPYTHON_BINDINGS=ON \
+    -DPYTHON_BINDINGS=OFF \
     -DCPP_BINDINGS=ON \
     $LIBIIO_CMAKE_FLAGS
 
@@ -41,4 +42,4 @@ sudo cmake --install "$LIBIIO_BUILD"
 echo "==> Refreshing linker cache"
 sudo ldconfig
 
-echo "==> libiio build/install complete"
+echo "==> libiio native build/install complete"
