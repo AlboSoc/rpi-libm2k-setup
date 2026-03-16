@@ -19,6 +19,19 @@ echo "==> Installing Python bindings"
 echo "==> PYTHON_EXE=$PYTHON_EXE"
 echo "==> site-packages=$(python_site_packages)"
 
+# Ensure Python packaging tools are present before any Python-binding
+# configure/build/install step. libiio's Python install path still relies
+# on legacy setup.py/setuptools machinery.
+if is_venv_python; then
+    echo "==> Detected virtual environment Python"
+    "$PYTHON_EXE" -m pip install --upgrade pip setuptools wheel
+else
+    echo "==> Detected system Python"
+    # Use distro packages here rather than pip into system Python.
+    sudo apt-get update
+    sudo apt-get install -y python3-pip python3-setuptools python3-wheel
+fi
+
 #
 # libiio Python bindings
 #
@@ -63,10 +76,7 @@ echo "==> Building libm2k Python bindings"
 cmake --build "$LIBM2K_PY_BUILD" -- -j"$JOBS"
 
 if is_venv_python; then
-    echo "==> Detected virtual environment Python"
     echo "==> Installing Python bindings into active venv with pip"
-
-    "$PYTHON_EXE" -m pip install --upgrade pip setuptools wheel
 
     "$PYTHON_EXE" -m pip install --no-deps --force-reinstall \
         "$LIBIIO_PY_BUILD/bindings/python"
@@ -74,7 +84,6 @@ if is_venv_python; then
     "$PYTHON_EXE" -m pip install --no-deps --force-reinstall \
         "$LIBM2K_PY_BUILD"
 else
-    echo "==> Detected system Python"
     echo "==> Installing Python bindings system-wide via CMake install"
 
     sudo cmake --install "$LIBIIO_PY_BUILD"
